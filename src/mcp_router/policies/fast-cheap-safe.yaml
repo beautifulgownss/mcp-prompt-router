@@ -1,0 +1,20 @@
+profiles:
+  fast-cheap-safe:
+    rules:
+      - if: "safety == 'strict'"
+        then: ["require_guard: pii", "require_guard: json_schema"]
+      - if: "latency_sla_ms <= 1000"
+        then: ["prefer: gpt-4o-mini", "fallback: claude-3-haiku"]
+      - if: "budget_cents <= 3"
+        then: ["prefer: gpt-4o-mini", "avoid: claude-3-opus"]
+      - default: ["prefer: best_quality_under_budget"]
+
+capabilities:
+  json_extraction:
+    - gpt-4o-mini
+    - claude-3-haiku
+  general:
+    - gpt-4o-mini
+    - gpt-4o
+    - claude-3-haiku
+    - claude-3-opus
