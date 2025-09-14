@@ -1,10 +1,15 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
+import time
 
 from mcp_router.policies.loader import load_policy
 from mcp_router.safety.pre import mask_pii
 from mcp_router.safety.post import validate_json_schema
+from mcp_router.safety.denylist import check_denylist
+from mcp_router.core.tokens import naive_token_estimate
+from mcp_router.core.costs import estimate_cost_cents
+from mcp_router.adapters import ADAPTERS
 
 app = FastAPI(title="MCP Prompt Router", version="0.1.0")
 
@@ -73,14 +78,39 @@ def health():
 
 @app.post("/v1/route")
 def route(req: RouteRequest):
+    start_time = time.time()
     constraints = req.constraints or RouteConstraints()
 
     # Apply pre-guard (mask PII)
     raw_task = req.task
     sanitized_task = mask_pii(raw_task)
+    
+    # Check denylist patterns
+    deny_hits = check_denylist(sanitized_task)
 
     # Evaluate policy
     decision = evaluate_policy(req.profile or "fast-cheap-safe", constraints)
+    
+    # Modify policy path if denylist hits found
+    policy_path = decision["policy_path"].copy()
+    if deny_hits:
+        policy_path.append("denylist:hit")
+
+    # Calculate real metrics
+    prompt_tokens = naive_token_estimate(sanitized_task)
+    output_tokens = naive_token_estimate("Demo response text for token estimation")  # Stub output
+    cost_cents = estimate_cost_cents(decision["model"], prompt_tokens, output_tokens)
+    latency_ms = int((time.time() - start_time) * 1000)
+
+    # Test adapter call
+    adapter = ADAPTERS.get(decision["provider"])
+    adapter_output = None
+    if adapter:
+        try:
+            adapter_result = adapter.completions(sanitized_task, decision["model"])
+            adapter_output = adapter_result.get("output", "No output")
+        except Exception as e:
+            adapter_output = f"[adapter-error] {str(e)}"
 
     # Optional post-guard schema validation
     validation = None
@@ -94,7 +124,13 @@ def route(req: RouteRequest):
         validation = {
             "ok": ok,
             "errors": errors,
-            "checked_keys": list(extraction_result.keys())
+            "checked_keys": list(extraction_result.keys()),
+            "deny_hits": deny_hits
+        }
+    else:
+        # Always include deny_hits in validation, even without schema
+        validation = {
+            "deny_hits": deny_hits
         }
 
     return {
@@ -103,14 +139,13 @@ def route(req: RouteRequest):
             "model": decision["model"]
         },
         "metrics": {
-            "latency_ms": 123,
-            "tokens_prompt": 200,
-            "tokens_output": 80,
-            "cost_cents": 1.2
+            "latency_ms": latency_ms,
+            "tokens_prompt": prompt_tokens,
+            "tokens_output": output_tokens,
+            "cost_cents": round(cost_cents, 3)
         },
-        "policy_path": decision["policy_path"],
-        "output": f"(stub) Routed '{sanitized_task[:20]}...' "
-                  f"to {decision['provider']}:{decision['model']}",
+        "policy_path": policy_path,
+        "output": adapter_output or f"(stub) Routed '{sanitized_task[:20]}...' to {decision['provider']}:{decision['model']}",
         "debug_sanitized": sanitized_task,
         "validation": validation,
         "trace_id": "trc_stub_001"

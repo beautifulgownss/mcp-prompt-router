@@ -1,0 +1,65 @@
+[
+  {
+    "id": "t1",
+    "status": "success",
+    "request_latency_ms": 5,
+    "router_latency_ms": 0,
+    "cost_cents": 0.87,
+    "tokens_prompt": 22,
+    "tokens_output": 9,
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "policy_path": [
+      "sla<=1000\u2192prefer gpt-4o-mini",
+      "fallback: claude-3-haiku",
+      "budget<=3",
+      "avoid: claude-3-opus"
+    ],
+    "deny_hits": [],
+    "trace_id": "trc_stub_001",
+    "constraints_met": {
+      "latency": true,
+      "budget": true
+    }
+  },
+  {
+    "id": "t2",
+    "status": "success",
+    "request_latency_ms": 1,
+    "router_latency_ms": 0,
+    "cost_cents": 0.69,
+    "tokens_prompt": 10,
+    "tokens_output": 9,
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "policy_path": [
+      "default: prefer: best_quality_under_budget"
+    ],
+    "deny_hits": [],
+    "trace_id": "trc_stub_001",
+    "constraints_met": {
+      "latency": true,
+      "budget": true
+    }
+  },
+  {
+    "id": "t3",
+    "status": "success",
+    "request_latency_ms": 1,
+    "router_latency_ms": 0,
+    "cost_cents": 0.675,
+    "tokens_prompt": 9,
+    "tokens_output": 9,
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "policy_path": [
+      "default: prefer: best_quality_under_budget"
+    ],
+    "deny_hits": [],
+    "trace_id": "trc_stub_001",
+    "constraints_met": {
+      "latency": true,
+      "budget": true
+    }
+  }
+]
