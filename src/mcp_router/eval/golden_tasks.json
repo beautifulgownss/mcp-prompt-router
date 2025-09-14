@@ -1,0 +1,29 @@
+[
+  {
+    "id": "t1",
+    "task": "Summarize this text: The quick brown fox jumps over the lazy dog. This is a test sentence.",
+    "profile": "fast-cheap-safe",
+    "constraints": {
+      "latency_sla_ms": 900,
+      "budget_cents": 2.5
+    }
+  },
+  {
+    "id": "t2", 
+    "task": "Extract name and email: John Smith, john@example.com",
+    "profile": "fast-cheap-safe",
+    "constraints": {
+      "latency_sla_ms": 1200,
+      "budget_cents": 5.0
+    }
+  },
+  {
+    "id": "t3",
+    "task": "Write a Python function to sort a list",
+    "profile": "fast-cheap-safe", 
+    "constraints": {
+      "latency_sla_ms": 2000,
+      "budget_cents": 10.0
+    }
+  }
+]
